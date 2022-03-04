@@ -69,6 +69,8 @@ def gems_per_sealed(winrate):
 def gems_per_trad_sealed(winrate):
     """Average gems per Traditional Sealed event.
 
+    Note that this uses winrate per match, rather than per game.
+
     >>> pprint([(winrate, round(gems_per_trad_sealed(winrate)))
     ...         for winrate in (r/100 for r in range(30, 100, 5))])
     [(0.3, 567),
@@ -127,6 +129,8 @@ def gems_per_quick_draft(winrate):
 
 def gems_per_trad_draft(winrate):
     """Average gems per Traditional Draft event.
+
+    Note that this uses winrate per match, rather than per game.
 
     >>> pprint([(winrate, round(gems_per_trad_draft(winrate)))
     ...         for winrate in (r/100 for r in range(30, 105, 5))])
