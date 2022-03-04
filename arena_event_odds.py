@@ -14,6 +14,19 @@ pct = lambda x: round(x*100, ndigits=1)
 def binomial(n, k):
     return factorial(n) / (factorial(k) * factorial(n-k))
 
+def tabulate_roi(roi, winrates):
+    """Tabulates ROI data for various winrates.  Used in doctests.
+
+    `roi` is the roi method to be called
+    `winrates` is a list of winrates as floats.
+    """
+    data = [roi(winrate) for winrate in winrates]
+    column_headers = data[0].keys()
+    data = [c.values() for c in data]
+    data = [column_headers] + data
+    data = zip(*data)
+    return tabulate(data, headers=[''] + winrates)
+
 class Event:
     """Base class for event classes."""
     pass
@@ -165,12 +178,7 @@ class QuickDraft(Event):
          'roi ratio': 1.79}
 
         >>> winrates = [i / 100 for i in range(30, 105, 5)]
-        >>> data = [QuickDraft.roi(winrate) for winrate in winrates]
-        >>> column_headers = data[0].keys()
-        >>> data = [c.values() for c in data]
-        >>> data = [column_headers] + data
-        >>> data = zip(*data)
-        >>> print(tabulate(data, headers=[''] + winrates))
+        >>> print(tabulate_roi(QuickDraft.roi, winrates))
                           0.3    0.35      0.4     0.45      0.5     0.55      0.6     0.65      0.7     0.75      0.8     0.85      0.9     0.95     1.0
         -------------  ------  ------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------  ------
         admission      750     750      750      750      750      750      750      750      750      750      750      750      750      750      750
@@ -196,7 +204,6 @@ class QuickDraft(Event):
                 'profit': round(reward - cls.admission),
                 'roi ratio': round(float(reward) / cls.admission, ndigits=2),
                 }
-
 
 def gems_per_trad_draft(winrate):
     """Average gems per Traditional Draft event.
