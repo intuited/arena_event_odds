@@ -27,8 +27,48 @@ def tabulate_roi(roi, winrates):
     return tabulate(data, headers=[''] + list(column_headers))
 
 class Event:
-    """Base class for event classes."""
-    pass
+    """Base class for event classes.
+
+    Subclasses define
+        - gem_rewards: list of gem reward amounts by games won
+        - admission: price in gems for the event
+        - pack_rewards: list of pack reward amounts by games won
+        - wincount_odds(winrate): returns list of odds of winning n games
+    """
+    rares = 3  # assume that an average of 3 rares are drafted
+
+    @classmethod
+    def weighted_rewards(cls, reward_scheme, winrate):
+        return [odds * rewards
+                for odds, rewards in zip(cls.wincount_odds(winrate), reward_scheme)]
+
+    @classmethod
+    def avg_gems(cls, winrate):
+        """Average gem rewards per event."""
+        return sum(cls.weighted_rewards(cls.gem_rewards, winrate))
+
+    @classmethod
+    def roi(cls, winrate):
+        """Calculates total return on investment.
+
+        Accounts for drafted rares and reward packs as well as rewarded gems.
+        Rares are given a value of 200 gems (the price of a pack).
+        Admission is assumed to be in gems.
+        """
+        average_wins = sum(wincount * p
+                           for wincount, p in zip(range(8), cls.wincount_odds(winrate)))
+        gems = cls.avg_gems(winrate)
+        packs = sum(cls.weighted_rewards(cls.pack_rewards, winrate))
+        reward = gems + 200*(packs + cls.rares)
+        return {'admission': cls.admission,
+                'avg wins': round(average_wins, ndigits=1),
+                'avg gems': round(gems),
+                'avg packs': round(packs, ndigits=1),
+                'rares': cls.rares,
+                'value': round(reward),
+                'profit': round(reward - cls.admission),
+                'roi ratio': round(float(reward) / cls.admission, ndigits=2),
+                }
 
 def cf_record_prob_lose3(winrate, numwins):
     """Probability of winning `numwins` game in an event that stops at three losses.
@@ -118,98 +158,64 @@ def gems_per_trad_sealed(winrate):
     return sum(weighted_rewards)
 
 class QuickDraft(Event):
+    """Quick Draft Event class.
 
+    >>> pprint([(winrate, round(QuickDraft.avg_gems(winrate)))
+    ...         for winrate in (r/100 for r in range(30, 105, 5))])
+    [(0.3, 153),
+     (0.35, 188),
+     (0.4, 232),
+     (0.45, 285),
+     (0.5, 347),
+     (0.55, 419),
+     (0.6, 499),
+     (0.65, 585),
+     (0.7, 672),
+     (0.75, 755),
+     (0.8, 830),
+     (0.85, 889),
+     (0.9, 928),
+     (0.95, 947),
+     (1.0, 950)]
+
+    Win rate needed to break even at Quick Draft is 74.69%
+    >>> round(QuickDraft.avg_gems(0.7469))
+    750
+
+    >>> pp(QuickDraft.roi(0.6))
+    {'admission': 750,
+     'avg wins': 4.0,
+     'avg gems': 499,
+     'avg packs': 1.2,
+     'rares': 3,
+     'value': 1345,
+     'profit': 595,
+     'roi ratio': 1.79}
+
+    >>> winrates = [i / 100 for i in range(30, 105, 5)]
+    >>> print(tabulate_roi(QuickDraft.roi, winrates))
+            admission    avg wins    avg gems    avg packs    rares    value    profit    roi ratio
+    ----  -----------  ----------  ----------  -----------  -------  -------  --------  -----------
+    0.3           750         1.3         153          1          3      954       204         1.27
+    0.35          750         1.6         188          1          3      991       241         1.32
+    0.4           750         2           232          1          3     1037       287         1.38
+    0.45          750         2.4         285          1          3     1095       345         1.46
+    0.5           750         2.9         347          1.1        3     1165       415         1.55
+    0.55          750         3.4         419          1.1        3     1249       499         1.67
+    0.6           750         4           499          1.2        3     1345       595         1.79
+    0.65          750         4.5         585          1.3        3     1452       702         1.94
+    0.7           750         5.1         672          1.5        3     1564       814         2.09
+    0.75          750         5.7         755          1.6        3     1676       926         2.23
+    0.8           750         6.2         830          1.7        3     1777      1027         2.37
+    0.85          750         6.6         889          1.9        3     1861      1111         2.48
+    0.9           750         6.9         928          1.9        3     1918      1168         2.56
+    0.95          750         7           947          2          3     1945      1195         2.59
+    1             750         7           950          2          3     1950      1200         2.6
+    """
     gem_rewards = [50, 100, 200, 300, 450, 650, 850, 950]
     admission = 750  #admission price in gems
     pack_rewards = [1, 1, 1, 1, 1, 1, 1, 2]
-    rares = 3  # assume that an average of 3 rares are drafted
     wincount_odds = lambda winrate: [cf_record_prob_lose3(winrate, numwins) for numwins in range(8)]
-
-    @classmethod
-    def weighted_rewards(cls, reward_scheme, winrate):
-        return [odds * rewards
-                for odds, rewards in zip(cls.wincount_odds(winrate), reward_scheme)]
-
-    @classmethod
-    def avg_gems(cls, winrate):
-        """Average gem rewards per Quick Draft event.
-
-        >>> pprint([(winrate, round(QuickDraft.avg_gems(winrate)))
-        ...         for winrate in (r/100 for r in range(30, 105, 5))])
-        [(0.3, 153),
-         (0.35, 188),
-         (0.4, 232),
-         (0.45, 285),
-         (0.5, 347),
-         (0.55, 419),
-         (0.6, 499),
-         (0.65, 585),
-         (0.7, 672),
-         (0.75, 755),
-         (0.8, 830),
-         (0.85, 889),
-         (0.9, 928),
-         (0.95, 947),
-         (1.0, 950)]
-
-        Win rate needed to break even at Quick Draft is 74.69%
-        >>> round(QuickDraft.avg_gems(0.7469))
-        750
-        """
-        return sum(cls.weighted_rewards(cls.gem_rewards, winrate))
-
-    @classmethod
-    def roi(cls, winrate):
-        """Calculates total return on investment.
-
-        Accounts for drafted rares and reward packs as well as rewarded gems.
-        Rares are given a value of 200 gems (the price of a pack).
-        Admission is assumed to be in gems.
-
-        >>> pp(QuickDraft.roi(0.6))
-        {'admission': 750,
-         'avg wins': 4.0,
-         'avg gems': 499,
-         'avg packs': 1.2,
-         'rares': 3,
-         'value': 1345,
-         'profit': 595,
-         'roi ratio': 1.79}
-
-        >>> winrates = [i / 100 for i in range(30, 105, 5)]
-        >>> print(tabulate_roi(QuickDraft.roi, winrates))
-                admission    avg wins    avg gems    avg packs    rares    value    profit    roi ratio
-        ----  -----------  ----------  ----------  -----------  -------  -------  --------  -----------
-        0.3           750         1.3         153          1          3      954       204         1.27
-        0.35          750         1.6         188          1          3      991       241         1.32
-        0.4           750         2           232          1          3     1037       287         1.38
-        0.45          750         2.4         285          1          3     1095       345         1.46
-        0.5           750         2.9         347          1.1        3     1165       415         1.55
-        0.55          750         3.4         419          1.1        3     1249       499         1.67
-        0.6           750         4           499          1.2        3     1345       595         1.79
-        0.65          750         4.5         585          1.3        3     1452       702         1.94
-        0.7           750         5.1         672          1.5        3     1564       814         2.09
-        0.75          750         5.7         755          1.6        3     1676       926         2.23
-        0.8           750         6.2         830          1.7        3     1777      1027         2.37
-        0.85          750         6.6         889          1.9        3     1861      1111         2.48
-        0.9           750         6.9         928          1.9        3     1918      1168         2.56
-        0.95          750         7           947          2          3     1945      1195         2.59
-        1             750         7           950          2          3     1950      1200         2.6
-        """
-        average_wins = sum(wincount * p
-                           for wincount, p in zip(range(8), cls.wincount_odds(winrate)))
-        gems = cls.avg_gems(winrate)
-        packs = sum(cls.weighted_rewards(cls.pack_rewards, winrate))
-        reward = gems + 200*(packs + cls.rares)
-        return {'admission': cls.admission,
-                'avg wins': round(average_wins, ndigits=1),
-                'avg gems': round(gems),
-                'avg packs': round(packs, ndigits=1),
-                'rares': cls.rares,
-                'value': round(reward),
-                'profit': round(reward - cls.admission),
-                'roi ratio': round(float(reward) / cls.admission, ndigits=2),
-                }
 
 def gems_per_trad_draft(winrate):
     """Average gems per Traditional Draft event.
