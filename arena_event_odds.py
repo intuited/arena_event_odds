@@ -10,6 +10,10 @@ topct = lambda x: round(x*100, ndigits=1)
 def binomial(n, k):
     return factorial(n) / (factorial(k) * factorial(n-k))
 
+class Event:
+    """Base class for event classes."""
+    pass
+
 def cf_record_prob_lose3(winrate, numwins):
     """Probability of winning `numwins` game in an event that stops at three losses.
 
@@ -97,35 +101,46 @@ def gems_per_trad_sealed(winrate):
     weighted_rewards = [odds * rewards for odds, rewards in zip(wincount_odds, gem_rewards)]
     return sum(weighted_rewards)
 
-def gems_per_quick_draft(winrate):
-    """Average gems per Quick Draft event.
+class QuickDraft(Event):
 
-    >>> pprint([(winrate, round(gems_per_quick_draft(winrate)))
-    ...         for winrate in (r/100 for r in range(30, 105, 5))])
-    [(0.3, 153),
-     (0.35, 188),
-     (0.4, 232),
-     (0.45, 285),
-     (0.5, 347),
-     (0.55, 419),
-     (0.6, 499),
-     (0.65, 585),
-     (0.7, 672),
-     (0.75, 755),
-     (0.8, 830),
-     (0.85, 889),
-     (0.9, 928),
-     (0.95, 947),
-     (1.0, 950)]
-
-    Win rate needed to break even at Quick Draft is 74.69%
-    >>> round(gems_per_quick_draft(0.7469))
-    750
-    """
-    wincount_odds = [cf_record_prob_lose3(winrate, numwins) for numwins in range(8)]
     gem_rewards = [50, 100, 200, 300, 450, 650, 850, 950]
-    weighted_rewards = [odds * rewards for odds, rewards in zip(wincount_odds, gem_rewards)]
-    return sum(weighted_rewards)
+    admission = 750  #admission price in gems
+    pack_rewards = [1, 1, 1, 1, 1, 1, 1, 2]
+    rares = 3  # assume that an average of 3 rares are drafted
+    wincount_odds = lambda winrate: [cf_record_prob_lose3(winrate, numwins) for numwins in range(8)]
+
+    @classmethod
+    def weighted_rewards(cls, reward_scheme, winrate):
+        return [odds * rewards
+                for odds, rewards in zip(cls.wincount_odds(winrate), reward_scheme)]
+
+    @classmethod
+    def avg_gems(cls, winrate):
+        """Average gem rewards per Quick Draft event.
+
+        >>> pprint([(winrate, round(QuickDraft.avg_gems(winrate)))
+        ...         for winrate in (r/100 for r in range(30, 105, 5))])
+        [(0.3, 153),
+         (0.35, 188),
+         (0.4, 232),
+         (0.45, 285),
+         (0.5, 347),
+         (0.55, 419),
+         (0.6, 499),
+         (0.65, 585),
+         (0.7, 672),
+         (0.75, 755),
+         (0.8, 830),
+         (0.85, 889),
+         (0.9, 928),
+         (0.95, 947),
+         (1.0, 950)]
+
+        Win rate needed to break even at Quick Draft is 74.69%
+        >>> round(QuickDraft.avg_gems(0.7469))
+        750
+        """
+        return sum(cls.weighted_rewards(cls.gem_rewards, winrate))
 
 def gems_per_trad_draft(winrate):
     """Average gems per Traditional Draft event.
