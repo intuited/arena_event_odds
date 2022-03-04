@@ -23,9 +23,8 @@ def tabulate_roi(roi, winrates):
     data = [roi(winrate) for winrate in winrates]
     column_headers = data[0].keys()
     data = [c.values() for c in data]
-    data = [column_headers] + data
-    data = zip(*data)
-    return tabulate(data, headers=[''] + winrates)
+    data = [ [winrate] + list(row) for winrate, row in zip(winrates, data) ]
+    return tabulate(data, headers=[''] + list(column_headers))
 
 class Event:
     """Base class for event classes."""
@@ -169,26 +168,33 @@ class QuickDraft(Event):
 
         >>> pp(QuickDraft.roi(0.6))
         {'admission': 750,
-         'average wins': 4.0,
-         'average gems': 499,
-         'average packs': 1.2,
-         'average rares': 3,
-         'total benefit': 1345,
+         'avg wins': 4.0,
+         'avg gems': 499,
+         'avg packs': 1.2,
+         'rares': 3,
+         'value': 1345,
          'profit': 595,
          'roi ratio': 1.79}
 
         >>> winrates = [i / 100 for i in range(30, 105, 5)]
         >>> print(tabulate_roi(QuickDraft.roi, winrates))
-                          0.3    0.35      0.4     0.45      0.5     0.55      0.6     0.65      0.7     0.75      0.8     0.85      0.9     0.95     1.0
-        -------------  ------  ------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------  ------
-        admission      750     750      750      750      750      750      750      750      750      750      750      750      750      750      750
-        average wins     1.3     1.6      2        2.4      2.9      3.4      4        4.5      5.1      5.7      6.2      6.6      6.9      7        7
-        average gems   153     188      232      285      347      419      499      585      672      755      830      889      928      947      950
-        average packs    1       1        1        1        1.1      1.1      1.2      1.3      1.5      1.6      1.7      1.9      1.9      2        2
-        average rares    3       3        3        3        3        3        3        3        3        3        3        3        3        3        3
-        total benefit  954     991     1037     1095     1165     1249     1345     1452     1564     1676     1777     1861     1918     1945     1950
-        profit         204     241      287      345      415      499      595      702      814      926     1027     1111     1168     1195     1200
-        roi ratio        1.27    1.32     1.38     1.46     1.55     1.67     1.79     1.94     2.09     2.23     2.37     2.48     2.56     2.59     2.6
+                admission    avg wins    avg gems    avg packs    rares    value    profit    roi ratio
+        ----  -----------  ----------  ----------  -----------  -------  -------  --------  -----------
+        0.3           750         1.3         153          1          3      954       204         1.27
+        0.35          750         1.6         188          1          3      991       241         1.32
+        0.4           750         2           232          1          3     1037       287         1.38
+        0.45          750         2.4         285          1          3     1095       345         1.46
+        0.5           750         2.9         347          1.1        3     1165       415         1.55
+        0.55          750         3.4         419          1.1        3     1249       499         1.67
+        0.6           750         4           499          1.2        3     1345       595         1.79
+        0.65          750         4.5         585          1.3        3     1452       702         1.94
+        0.7           750         5.1         672          1.5        3     1564       814         2.09
+        0.75          750         5.7         755          1.6        3     1676       926         2.23
+        0.8           750         6.2         830          1.7        3     1777      1027         2.37
+        0.85          750         6.6         889          1.9        3     1861      1111         2.48
+        0.9           750         6.9         928          1.9        3     1918      1168         2.56
+        0.95          750         7           947          2          3     1945      1195         2.59
+        1             750         7           950          2          3     1950      1200         2.6
         """
         average_wins = sum(wincount * p
                            for wincount, p in zip(range(8), cls.wincount_odds(winrate)))
@@ -196,11 +202,11 @@ class QuickDraft(Event):
         packs = sum(cls.weighted_rewards(cls.pack_rewards, winrate))
         reward = gems + 200*(packs + cls.rares)
         return {'admission': cls.admission,
-                'average wins': round(average_wins, ndigits=1),
-                'average gems': round(gems),
-                'average packs': round(packs, ndigits=1),
-                'average rares': cls.rares,
-                'total benefit': round(reward),
+                'avg wins': round(average_wins, ndigits=1),
+                'avg gems': round(gems),
+                'avg packs': round(packs, ndigits=1),
+                'rares': cls.rares,
+                'value': round(reward),
                 'profit': round(reward - cls.admission),
                 'roi ratio': round(float(reward) / cls.admission, ndigits=2),
                 }
