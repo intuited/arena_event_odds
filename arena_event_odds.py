@@ -56,6 +56,10 @@ def gems_per_sealed(winrate):
      (0.85, 2086),
      (0.9, 2160),
      (0.95, 2194)]
+
+    Win rate needed to break even at Sealed is 81.01%
+    >>> round(gems_per_sealed(0.8101))
+    2000
     """
     wincount_odds = [cf_record_prob_lose3(winrate, numwins) for numwins in range(8)]
     gem_rewards = [200, 400, 600, 1200, 1400, 1600, 2000, 2200]
@@ -81,6 +85,10 @@ def gems_per_trad_sealed(winrate):
      (0.85, 2019),
      (0.9, 2113),
      (0.95, 2177)]
+
+    Win rate needed to break even at Trad Sealed is 84.12%
+    >>> round(gems_per_trad_sealed(0.8412))
+    2000
     """
     wincount_odds = [cf_record_prob_lose2(winrate, numwins, maxwins=4) for numwins in range(5)]
     gem_rewards = [200, 500, 1200, 1800, 2200]
