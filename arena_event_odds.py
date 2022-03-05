@@ -222,8 +222,9 @@ class TradDraft(Event):
 
     Note that this uses winrate per match, rather than per game.
 
+    >>> winrates = [i / 100 for i in range(30, 105, 5)]
     >>> pprint([(winrate, round(TradDraft.avg_gems(winrate)))
-    ...         for winrate in (r/100 for r in range(30, 105, 5))])
+    ...         for winrate in winrates])
     [(0.3, 270),
      (0.35, 368),
      (0.4, 480),
@@ -243,7 +244,30 @@ class TradDraft(Event):
     Break-even win rate for Trad Draft is 70.7%.
     >>> round(TradDraft.avg_gems(0.707))
     1500
+
+    >>> print(tabulate_roi(TradDraft.roi, winrates))
+            admission    avg wins    avg gems    avg packs    rares    value    profit    roi ratio
+    ----  -----------  ----------  ----------  -----------  -------  -------  --------  -----------
+    0.3          1500         0.9         270          1.7        3     1210      -290         0.81
+    0.35         1500         1.1         368          1.9        3     1354      -146         0.9
+    0.4          1500         1.2         480          2.2        3     1517        17         1.01
+    0.45         1500         1.4         608          2.5        3     1699       199         1.13
+    0.5          1500         1.5         750          2.8        3     1900       400         1.27
+    0.55         1500         1.7         908          3.1        3     2119       619         1.41
+    0.6          1500         1.8        1080          3.4        3     2355       855         1.57
+    0.65         1500         2          1268          3.7        3     2608      1108         1.74
+    0.7          1500         2.1        1470          4          3     2878      1378         1.92
+    0.75         1500         2.2        1688          4.4        3     3162      1662         2.11
+    0.8          1500         2.4        1920          4.7        3     3462      1962         2.31
+    0.85         1500         2.5        2168          5          3     3777      2277         2.52
+    0.9          1500         2.7        2430          5.4        3     4105      2605         2.74
+    0.95         1500         2.9        2707          5.7        3     4446      2946         2.96
+    1            1500         3          3000          6          3     4800      3300         3.2
+
     """
+    gem_rewards = [0, 0, 1000, 3000]
+    admission = 1500
+    pack_rewards = [1, 1, 4, 6]
     def wincount_odds(winrate):
         """Calculate odds of winning n games for each possible value of n.
 
@@ -259,8 +283,6 @@ class TradDraft(Event):
         case_counts = [1, 3, 3, 1]
         return [cc*pow(1-winrate, 3-wincount)*pow(winrate, wincount)
                 for cc, wincount in zip(case_counts, range(4))]
-
-    gem_rewards = [0, 0, 1000, 3000]
 
 def gems_per_premier_draft(winrate):
     """Average gems per Premier Draft event.
