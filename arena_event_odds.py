@@ -14,6 +14,34 @@ pct = lambda x: round(x*100, ndigits=1)
 def binomial(n, k):
     return factorial(n) / (factorial(k) * factorial(n-k))
 
+def cf_record_prob_lose3(winrate, numwins):
+    """Probability of winning `numwins` game in an event that stops at three losses.
+
+    Assumes max wins is 7.
+
+    >>> pct(cf_record_prob_lose3(0.6, 7))
+    23.2
+    >>> pct(cf_record_prob_lose3(0.45, 4))
+    10.2
+    """
+    if numwins == 7:
+        return pow(winrate, 7) + 7*pow(winrate, 6)*(1-winrate)*winrate + 28*pow(winrate, 6)*pow(1-winrate, 2)*winrate
+    else:
+        return pow(winrate, numwins) * pow(1-winrate, 2) * binomial(numwins+2, 2) * (1-winrate)
+
+def cf_record_prob_lose2(winrate, numwins, maxwins=5):
+    """Probability of winning `numwins` game in an event that stops at two losses.
+
+    >>> pct(cf_record_prob_lose2(0.6, 5))
+    23.3
+    >>> pct(cf_record_prob_lose2(0.45, 3))
+    11.0
+    """
+    if numwins == maxwins:
+        return pow(winrate, numwins) + numwins*pow(winrate, numwins)*(1-winrate)
+    else:
+        return pow(winrate, numwins)*pow(1-winrate, 2)*(numwins+1)
+
 def tabulate_roi(roi, winrates):
     """Tabulates ROI data for various winrates.  Used in doctests.
 
@@ -33,6 +61,10 @@ class Event:
         - gem_rewards: list of gem reward amounts by games won
         - admission: price in gems for the event
         - pack_rewards: list of pack reward amounts by games won
+
+    Subclasses also define either `wincount_probs` and `maxwins` or `wincount_odds`.
+        - wincount_probs: binomial function used by default `wincount_odds`
+        - maxwins: the maximum number of wins for the event
         - wincount_odds(winrate): returns list of odds of winning n games
     """
     rares = 3  # assume that an average of 3 rares are drafted
@@ -70,32 +102,10 @@ class Event:
                 'roi ratio': round(float(reward) / cls.admission, ndigits=2),
                 }
 
-def cf_record_prob_lose3(winrate, numwins):
-    """Probability of winning `numwins` game in an event that stops at three losses.
-
-    Assumes max wins is 7.
-
-    >>> pct(cf_record_prob_lose3(0.6, 7))
-    23.2
-    >>> pct(cf_record_prob_lose3(0.45, 4))
-    10.2
-    """
-    if numwins == 7:
-        return pow(winrate, 7) + 7*pow(winrate, 6)*(1-winrate)*winrate + 28*pow(winrate, 6)*pow(1-winrate, 2)*winrate
-    else:
-        return pow(winrate, numwins) * pow(1-winrate, 2) * binomial(numwins+2, 2) * (1-winrate)
-def cf_record_prob_lose2(winrate, numwins, maxwins=5):
-    """Probability of winning `numwins` game in an event that stops at two losses.
-
-    >>> pct(cf_record_prob_lose2(0.6, 5))
-    23.3
-    >>> pct(cf_record_prob_lose2(0.45, 3))
-    11.0
-    """
-    if numwins == maxwins:
-        return pow(winrate, numwins) + numwins*pow(winrate, numwins)*(1-winrate)
-    else:
-        return pow(winrate, numwins)*pow(1-winrate, 2)*(numwins+1)
+    @classmethod
+    def wincount_odds(cls, winrate):
+        return [cls.wincount_probs(winrate, numwins)
+                for numwins in range(cls.maxwins+1)]
 
 def gems_per_sealed(winrate):
     """Calculates average gems per Sealed Draft for a given winrate.
@@ -158,7 +168,7 @@ def gems_per_trad_sealed(winrate):
     return sum(weighted_rewards)
 
 class QuickDraft(Event):
-    """Quick Draft Event class.
+    """Analysis of Quick Draft events.
 
     >>> pprint([(winrate, round(QuickDraft.avg_gems(winrate)))
     ...         for winrate in (r/100 for r in range(30, 105, 5))])
@@ -221,10 +231,11 @@ class QuickDraft(Event):
     gem_rewards = [50, 100, 200, 300, 450, 650, 850, 950]
     admission = 750  #admission price in gems
     pack_rewards = [1, 1, 1, 1, 1, 1, 1, 2]
-    wincount_odds = lambda winrate: [cf_record_prob_lose3(winrate, numwins) for numwins in range(8)]
+    wincount_probs = cf_record_prob_lose3
+    maxwins = 7
 
 class TradDraft(Event):
-    """Average gems per Traditional Draft event.
+    """Analysis of Traditional Draft events.
 
     Note that this uses winrate per match, rather than per game.
 
@@ -290,10 +301,10 @@ class TradDraft(Event):
         return [cc*pow(1-winrate, 3-wincount)*pow(winrate, wincount)
                 for cc, wincount in zip(case_counts, range(4))]
 
-def gems_per_premier_draft(winrate):
-    """Average gems per Premier Draft event.
+class PremierDraft(Event):
+    """Analysis of Premier Draft events.
 
-    >>> pprint([(winrate, round(gems_per_premier_draft(winrate)))
+    >>> pprint([(winrate, round(PremierDraft.avg_gems(winrate)))
     ...         for winrate in (r/100 for r in range(30, 105, 5))])
     [(0.3, 295),
      (0.35, 396),
@@ -312,10 +323,9 @@ def gems_per_premier_draft(winrate):
      (1.0, 2200)]
 
     Break-even win rate for Premier Draft is 67.8
-    >>> round(gems_per_premier_draft(0.678))
+    >>> round(PremierDraft.avg_gems(0.678))
     1500
     """
-    wincount_odds = [cf_record_prob_lose3(winrate, numwins) for numwins in range(8)]
     gem_rewards = [50, 100, 250, 1000, 1400, 1600, 1800, 2200]
-    weighted_rewards = [odds * rewards for odds, rewards in zip(wincount_odds, gem_rewards)]
-    return sum(weighted_rewards)
+    wincount_probs = cf_record_prob_lose3
+    maxwins = 7
