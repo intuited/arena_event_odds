@@ -84,8 +84,15 @@ class Event:
         """Calculates total return on investment.
 
         Accounts for drafted rares and reward packs as well as rewarded gems.
+
         Rares are given a value of 200 gems (the price of a pack).
-        Admission is assumed to be in gems.
+
+        This rate is probably quite inflated, since it does not account for
+        the accumulation of wildcards that comes with opening packs.
+
+        As well, the given of 3 picked rares is likely higher than typical.
+
+        Admission prices are in gems.
         """
         average_wins = sum(wincount * p
                            for wincount, p in zip(range(8), cls.wincount_odds(winrate)))
@@ -304,8 +311,9 @@ class TradDraft(Event):
 class PremierDraft(Event):
     """Analysis of Premier Draft events.
 
+    >>> winrates = [i / 100 for i in range(30, 105, 5)]
     >>> pprint([(winrate, round(PremierDraft.avg_gems(winrate)))
-    ...         for winrate in (r/100 for r in range(30, 105, 5))])
+    ...         for winrate in winrates])
     [(0.3, 295),
      (0.35, 396),
      (0.4, 517),
@@ -325,7 +333,28 @@ class PremierDraft(Event):
     Break-even win rate for Premier Draft is 67.8
     >>> round(PremierDraft.avg_gems(0.678))
     1500
+
+    >>> print(tabulate_roi(PremierDraft.roi, winrates))
+            admission    avg wins    avg gems    avg packs    rares    value    profit    roi ratio
+    ----  -----------  ----------  ----------  -----------  -------  -------  --------  -----------
+    0.3          1500         1.3         295          1.5        3     1188      -312         0.79
+    0.35         1500         1.6         396          1.6        3     1325      -175         0.88
+    0.4          1500         2           517          1.9        3     1492        -8         0.99
+    0.45         1500         2.4         658          2.2        3     1690       190         1.13
+    0.5          1500         2.9         820          2.5        3     1918       418         1.28
+    0.55         1500         3.4         998          2.9        3     2175       675         1.45
+    0.6          1500         4          1189          3.3        3     2456       956         1.64
+    0.65         1500         4.5        1388          3.8        3     2752      1252         1.83
+    0.7          1500         5.1        1586          4.3        3     3051      1551         2.03
+    0.75         1500         5.7        1773          4.8        3     3337      1837         2.22
+    0.8          1500         6.2        1938          5.3        3     3590      2090         2.39
+    0.85         1500         6.6        2067          5.6        3     3791      2291         2.53
+    0.9          1500         6.9        2153          5.9        3     3925      2425         2.62
+    0.95         1500         7          2193          6          3     3989      2489         2.66
+    1            1500         7          2200          6          3     4000      2500         2.67
     """
     gem_rewards = [50, 100, 250, 1000, 1400, 1600, 1800, 2200]
     wincount_probs = cf_record_prob_lose3
     maxwins = 7
+    admission = 1500
+    pack_rewards = [1, 1, 2, 2, 3, 4, 5, 6]
