@@ -192,10 +192,16 @@ class QuickDraft(Event):
      'profit': 595,
      'roi ratio': 1.79}
 
-    >>> winrates = [i / 100 for i in range(30, 105, 5)]
+    >>> winrates = [i / 100 for i in range(0, 105, 5)]
     >>> print(tabulate_roi(QuickDraft.roi, winrates))
             admission    avg wins    avg gems    avg packs    rares    value    profit    roi ratio
     ----  -----------  ----------  ----------  -----------  -------  -------  --------  -----------
+    0             750         0            50          1          3      850       100         1.13
+    0.05          750         0.2          59          1          3      859       109         1.14
+    0.1           750         0.3          70          1          3      870       120         1.16
+    0.15          750         0.5          84          1          3      884       134         1.18
+    0.2           750         0.7         102          1          3      902       152         1.2
+    0.25          750         1           125          1          3      925       175         1.23
     0.3           750         1.3         153          1          3      954       204         1.27
     0.35          750         1.6         188          1          3      991       241         1.32
     0.4           750         2           232          1          3     1037       287         1.38
