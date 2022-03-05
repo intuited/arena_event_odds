@@ -217,12 +217,12 @@ class QuickDraft(Event):
     pack_rewards = [1, 1, 1, 1, 1, 1, 1, 2]
     wincount_odds = lambda winrate: [cf_record_prob_lose3(winrate, numwins) for numwins in range(8)]
 
-def gems_per_trad_draft(winrate):
+class TradDraft(Event):
     """Average gems per Traditional Draft event.
 
     Note that this uses winrate per match, rather than per game.
 
-    >>> pprint([(winrate, round(gems_per_trad_draft(winrate)))
+    >>> pprint([(winrate, round(TradDraft.avg_gems(winrate)))
     ...         for winrate in (r/100 for r in range(30, 105, 5))])
     [(0.3, 270),
      (0.35, 368),
@@ -240,23 +240,27 @@ def gems_per_trad_draft(winrate):
      (0.95, 2707),
      (1.0, 3000)]
 
-
     Break-even win rate for Trad Draft is 70.7%.
-    >>> round(gems_per_trad_draft(0.707))
+    >>> round(TradDraft.avg_gems(0.707))
     1500
     """
-    # This event is unlike the others because we play three matches regardless.
-    # Different win counts have different cases:
-    #   - 0 wins: LLL
-    #   - 1 win:  WLL, LWL, LLW
-    #   - 2 wins: WWL, WLW, LWW
-    #   - 3 wins: WWW
-    case_counts = [1, 3, 3, 1]
-    wincount_odds = [cc*pow(1-winrate, 3-wincount)*pow(winrate, wincount)
-                     for cc, wincount in zip(case_counts, range(4))]
+    def wincount_odds(winrate):
+        """Calculate odds of winning n games for each possible value of n.
+
+        This event is unlike the others because we play three matches regardless.
+        Because of this, we calculate wincount odds using case count probability
+        rather than binomial distribution calculation.
+        Different win counts have different cases:
+          - 0 wins: LLL
+          - 1 win:  WLL, LWL, LLW
+          - 2 wins: WWL, WLW, LWW
+          - 3 wins: WWW
+        """
+        case_counts = [1, 3, 3, 1]
+        return [cc*pow(1-winrate, 3-wincount)*pow(winrate, wincount)
+                for cc, wincount in zip(case_counts, range(4))]
+
     gem_rewards = [0, 0, 1000, 3000]
-    weighted_rewards = [odds*reward for odds, reward in zip(wincount_odds, gem_rewards)]
-    return sum(weighted_rewards)
 
 def gems_per_premier_draft(winrate):
     """Average gems per Premier Draft event.
